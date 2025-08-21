@@ -370,7 +370,7 @@ $ZipHash.Hash | Out-File (Join-Path $CaseDir "archive_sha256.txt") -Encoding asc
 Stop-Transcript | Out-Null
 
 Write-Host ""
-Write-Host "✅ 수집 완료"
+Write-Host "수집 완료"
 Write-Host " - 결과 폴더: $CaseDir"
 Write-Host " - ZIP: $ZipPath"
 Write-Host " - ZIP SHA256: $($ZipHash.Hash)"
