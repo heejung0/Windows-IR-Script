@@ -45,7 +45,18 @@ $null = New-Item -Type Directory -Force -Path $LogDir | Out-Null
 
 # 통합 로그
 $Transcript = Join-Path $LogDir "transcript.txt"
-Start-Transcript -Path $Transcript -Force | Out-Null
+
+# 트랜스크립트 안전 시작
+try { Stop-Transcript | Out-Null } catch {}
+try {
+  if ($Host.Name -match 'ConsoleHost|Visual Studio Code Host|Windows Terminal') {
+    Start-Transcript -Path $Transcript -Force -ErrorAction Stop | Out-Null
+  } else {
+    "Transcript skipped (host: $($Host.Name))" | Out-File (Join-Path $LogDir "transcript_error.txt") -Encoding UTF8
+  }
+} catch {
+  "Transcript start failed: $($_.Exception.Message)" | Out-File (Join-Path $LogDir "transcript_error.txt") -Encoding UTF8
+}
 
 # 공용 헬퍼
 function Save-Cmd {
@@ -99,7 +110,7 @@ $tool = @{
 }
 
 # 수집 시작 시각(증거 시각)
-$StartIso = Get-Date -AsUTC -Format "yyyy-MM-ddTHH:mm:ssZ"
+$StartIso = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
 Set-Content -Path (Join-Path $CaseDir "collection_meta.txt") -Value @(
   "case=$Case"
   "started_utc=$StartIso"
@@ -264,19 +275,21 @@ Save-Cmd "nltest /dsgetdc:." (Join-Path $UG "domain_info.txt")
 #-------------------- 11) PERSISTENCE (WMI, IFEO, AppInit 등) --------------------
 Write-Section "PERSISTENCE"
 $PE = Join-Path $CaseDir "11_persistence"
-# WMI 영속성
-Save-PS {
+# WMI 영속성 (Save-PS 대신, 파이프 형태로)
+& {
   $ns = "root\subscription"
   Get-WmiObject -Namespace $ns -Class __EventFilter -ErrorAction SilentlyContinue
-} (Join-Path $PE "WMI_EventFilter.txt")
-Save-PS {
+} | Out-File -FilePath (Join-Path $PE "WMI_EventFilter.txt") -Force -Encoding UTF8
+
+& {
   $ns = "root\subscription"
   Get-WmiObject -Namespace $ns -Class __EventConsumer -ErrorAction SilentlyContinue
-} (Join-Path $PE "WMI_EventConsumer.txt")
-Save-PS {
+} | Out-File -FilePath (Join-Path $PE "WMI_EventConsumer.txt") -Force -Encoding UTF8
+
+& {
   $ns = "root\subscription"
   Get-WmiObject -Namespace $ns -Class __FilterToConsumerBinding -ErrorAction SilentlyContinue
-} (Join-Path $PE "WMI_Bindings.txt")
+} | Out-File -FilePath (Join-Path $PE "WMI_Bindings.txt") -Force -Encoding UTF8
 
 # IFEO
 reg query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options" /s | Out-File (Join-Path $PE "IFEO.txt") -Encoding UTF8
