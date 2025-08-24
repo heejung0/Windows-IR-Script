@@ -9,4 +9,4 @@ Windows용 사고 대응 Script입니다.
 # 실행 명령어
 1. Set-ExecutionPolicy -Scope Process Bypass
 2. Unblock-File .\WinIR-Collector.ps1
-3. .\WinIR-Collector.ps1 -Case "20250824" -OutputRoot "C:\IR"
+3. .\WinIR-Collector.ps1 -Case "2024-08-21" -OutputRoot "C:\IR"
